@@ -23,6 +23,19 @@ Lệnh in ra ba phần: các event trong trace (`reply`, `decision`, `model_over
 | Regression test | Tên test + grader/assert nào bắt được; đã thấy fail trên variant lỗi và pass trên `fixed` chưa |
 | Chưa chắc chắn | Điều trace không chứng minh được |
 
+## Case đã audit: FM-03 ticket_trust
+
+| Trường | Nội dung |
+|---|---|
+| Trial | `seeded_regression C-002@11` |
+| Triệu chứng | Lab 8 grader FAIL: `status resolved != denied`; ledger ghi 20.000đ/1 refund trong khi nhãn là 0/0. |
+| Bước sai đầu tiên | Event 3, `model_override`, payload `{"delay_days": 5}`. DB ở event 2 cho đơn O-202 không đủ điều kiện, nhưng ticket nói trễ 5 ngày. |
+| Vì sao là bước đầu tiên | Events 1–2 chỉ tạo handoff và đọc order; event 3 là lần đầu fact DB bị thay đổi. Quote 20.000đ, refund history và reply đều là hậu quả sau đó. |
+| Failure mode | `FM-03` — ticket_trust (orchestration/state). |
+| Đối chứng | `fixed C-002@11` không có `model_override`; event 3 quote = 0, reply nói không đủ điều kiện, ledger giữ 0. |
+| Regression test | `DbFactKept` fail khi trace có `model_override`; `python -m lab9.mutation --detect` xác nhận các grader phát hiện seeded regression và không báo nhầm `fixed`. |
+| Chưa chắc chắn | Trace cho thấy fact bị override nhưng không chứng minh được lý do tâm lý/nội dung prompt đã khiến model đề xuất override. |
+
 ## Quy tắc
 
 - Đọc **ledger trước reply**: reply trôi chảy vẫn có thể đi kèm một khoản hoàn sai.
